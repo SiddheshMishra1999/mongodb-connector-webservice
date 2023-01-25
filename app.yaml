@@ -1,4 +1,5 @@
 runtime: python37
 env : flex
-entrypoint: gunicorn -b :$PORT -w 2 app:app
+entrypoint: gunicorn -b :$PORT app:app
+
 
