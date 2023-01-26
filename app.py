@@ -1,11 +1,14 @@
 import json
 import os
-from flask import Flask, request, jsonify, make_response
+from flask import Flask, request, render_template
 from pymongo import MongoClient
 
-# used this tut: https://www.digitalocean.com/community/tutorials/how-to-use-mongodb-in-a-flask-application
-# Creating an instance of flask
+# pylint: disable=C0103
 app = Flask(__name__)
+
+@app.route("/")
+def home():
+    return "Hello, Flask!"
 
 # Getting Database cluster 
 connection = os.environ.get("CONNECTION_STRING")
@@ -43,5 +46,6 @@ def getData():
 
     return {"All_Data":dataArr}, 201
 
-if __name__ == "__main__":  
-    app.run(debug = True, host="0.0.0.0", port=8080)  
+if __name__ == '__main__':
+    server_port = os.environ.get('PORT', '8080')
+    app.run(debug=False, port=server_port, host='0.0.0.0')
