@@ -16,6 +16,7 @@ client = MongoClient(connection)
 db = client.flask_db
 collection = db.fluttereasyaccess
 
+# Route name convention
 @app.post('/mongoInsert')
 def index():
     if request.method=='POST':
