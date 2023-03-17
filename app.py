@@ -147,8 +147,7 @@ def flutterManyData():
 @app.post('/technohealthInsert')
 def postManyTechnohealth():
     db = client.Technohealth
-    collectionName = "c88d8e3e-adac-4017-9744-24f402da90dc"
-    collection = db[collectionName]
+    
     headers = {
     'Access-Control-Allow-Origin': '*'
     }
@@ -158,7 +157,7 @@ def postManyTechnohealth():
         # Splitting the data being received 
 
         initialSplit = requestData.split("\n")[:-1]
-
+        
 
         # Setting the dictionary keys fir data storage
         keys = ["Usage Id", "Sensor Type", "Timestamp", "Data"]
@@ -173,7 +172,7 @@ def postManyTechnohealth():
             # Dictionary cannot have duplicate keys, so we don't use the keys
             # So we just don't use them, we have our own keys 
             values.append(pairs[1])
-
+        collectionName = str(values[0])
         # Loop to make dictionaries using the keys list and the values
         for i in range(0, len(values), len(keys)):
             value = values[i:i+len(keys)]
@@ -184,7 +183,7 @@ def postManyTechnohealth():
         # Loop to change all the dictionaries to JSON objects
         # for i in data:
         #     json.dumps(i)
-
+        collection = db[collectionName]
         collection.insert_many(data)
 
         collection.update_many(
@@ -210,17 +209,32 @@ def technohealthData():
     headers = {
     'Access-Control-Allow-Origin': '*'
     }
+    eeg = collection.find(
+        {"Sensor Type": "EEG"}
+    )
+    ppg = collection.find(
+        {"Sensor Type": "PPG"}
+    )
     data = collection.find()
-    dataArr = []
-    for document in data:
-        allData = {
-            "Timestamp": document["Timestamp"],
-            "sensor Type" : document["Sensor Type"],
-            "Data" : document["Data"]
-        }
-        dataArr.append(allData)
+    eegData = []
+    ppgData = []
 
-    return {"All_Data":dataArr}, 201, headers
+    dataArr = []
+    for document in eeg:
+        eegData.append({"Timestamp": document["Timestamp"],
+                 "Data" : document["Data"]})
+    for document in ppg:
+        ppgData.append({"Timestamp": document["Timestamp"],
+                 "Data" : document["Data"]})
+    
+    allData = {
+        0:{"EEG": eegData},
+        1:{"PPG": ppgData}
+    }
+        
+    # print(allData["EEG"][1]["Timestamp"])
+    return {"All_Data":allData}, 201, headers
+
 
 if __name__ == '__main__':
     server_port = os.environ.get('PORT', '8080')
