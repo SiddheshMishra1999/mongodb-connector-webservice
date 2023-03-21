@@ -2,6 +2,7 @@ import json
 import os
 from flask import Flask, request, render_template
 from pymongo import MongoClient
+import requests
 
 
 # pylint: disable=C0103
@@ -106,17 +107,82 @@ def flutterData():
 
 
 
-# Route for flutter exclusive
-@app.post('/flutterManyInsert')
-def postManyFlutter():
-    db = client.flask_db
-    collection = db.fluttermanyexclusive
+# Route for puller inserts
+@app.post('/pullerInsert')
+def postPullerData():
     headers = {
     'Access-Control-Allow-Origin': '*'
     }
+    
+    requestData = request.json["Channel_1"][2:]
+    deviceName = request.json["deviceName"]
+    serialNumber = request.json["serialNumber"]
+    sensorType = request.json["sensorType"]
+
+    print(f"device name = {deviceName}\nserial Number = {serialNumber}")
+
+    endpoint = f"https://supabase-webservice-tnxbi5wsma-uc.a.run.app/usage/get/device/{deviceName}/{serialNumber}"
+    response = requests.get(url=endpoint)
+    resJson = response.json()
+    if(not resJson):
+        return{'error': 'No such usageid'}, 400, headers
+    usage_id = resJson["Usage"][0]["usage_id"]
+    db = client[deviceName]
+    collection = db[usage_id]
+
+    # Splitting the data being received 
+ 
+    initialSplit = requestData.split("\\n")[:-1]
+  
+    data=[]
+
+    for element in initialSplit:
+        data.append(json.loads(element))
 
     if request.method=='POST':
-        collection.insert_many(request.json)
+        collection.insert_many(data)
+        collection.update_many(
+                {},
+                [ 
+                    { 
+                        "$set": 
+                        { 
+                            "Sensor Type": sensorType
+                        } 
+                    },
+
+                    { 
+                        "$unset": 
+                        [
+                            "sampleNum",
+                            "tagLEDC1_PD1", 
+                            "tagLEDC1_PD2", 
+                            "tagLEDC2_PD1", 
+                            "tagLEDC2_PD2",  
+                            "tagLEDC3_PD1", 
+                            "tagLEDC3_PD2", 
+                            "tagLEDC4_PD1", 
+                            "tagLEDC4_PD2",
+                            "LEDC1_PD1", 
+                            "LEDC1_PD2", 
+                            "LEDC2_PD1", 
+                            "LEDC2_PD2",  
+                            "LEDC3_PD1", 
+                            "LEDC3_PD2", 
+                            "LEDC4_PD1", 
+                            "LEDC4_PD2",
+                            "temperature",
+                            "RTC",
+                            "sensor",
+                            "regAddr",
+                            "val",
+                            "I2Caddr",
+                            "Unnamed: 27"
+                        ]
+                    }, 
+    
+                ]
+            )
         return {"Success": 'Data has been added'}, 201, headers
     else:
         return{'error': 'Request must be Post'}, 400, headers
@@ -200,39 +266,60 @@ def postManyTechnohealth():
         return{'error': 'Request must be Post'}, 400, headers
 
 # Route to get Technohealth data
-@app.get('/technohealthData')
-def technohealthData():
-    db = client.Technohealth
-    collectionName = "c88d8e3e-adac-4017-9744-24f402da90dc"
+@app.get('/<device_name>/<usage_id>')
+def technohealthData(device_name,usage_id):
+    db = client[device_name]
+    collectionName = usage_id
     collection = db[collectionName]
     # For later we can add the usage Id to the url so we can get specific usageID data
     headers = {
     'Access-Control-Allow-Origin': '*'
     }
-    eeg = collection.find(
-        {"Sensor Type": "EEG"}
-    )
-    ppg = collection.find(
-        {"Sensor Type": "PPG"}
-    )
-    data = collection.find()
-    eegData = []
-    ppgData = []
 
-    dataArr = []
-    for document in eeg:
-        eegData.append({"Timestamp": document["Timestamp"],
-                 "Data" : document["Data"]})
-    for document in ppg:
-        ppgData.append({"Timestamp": document["Timestamp"],
-                 "Data" : document["Data"]})
-    
-    allData = {
-        0:{"EEG": eegData},
-        1:{"PPG": ppgData}
-    }
+    if(device_name == "Technohealth"):
+        eeg = collection.find(
+            {"Sensor Type": "EEG"}
+        )
+        ppg = collection.find(
+            {"Sensor Type": "PPG"}
+        )
+        eegData = []
+        ppgData = []
+
+        dataArr = []
+        for document in eeg:
+            eegData.append({"Timestamp": document["Timestamp"],
+                    "Data" : document["Data"]})
+        for document in ppg:
+            ppgData.append({"Timestamp": document["Timestamp"],
+                    "Data" : document["Data"]})
         
-    # print(allData["EEG"][1]["Timestamp"])
+        allData = {
+            0:{"EEG": eegData},
+            1:{"PPG": ppgData}
+        }
+        return {"All_Data":allData}, 201, headers
+    
+    data = collection.find()
+    accxData = []
+    accyData = []
+    acczData = []
+    for document in data:
+        accxData.append({"Timestamp": document["timestamp"],
+                "Data" : document["ACCX"]})
+    for document in data:
+        accyData.append({"Timestamp": document["timestamp"],
+                "Data" : document["ACCY"]})
+    for document in data:
+        acczData.append({"Timestamp": document["timestamp"],
+                "Data" : document["ACCZ"]})
+    allData = {
+        0:{"ACCX": accxData},
+        1:{"ACCY": accyData},
+        2:{"ACCZ": acczData}
+    }
+    
+# print(allData["EEG"][1]["Timestamp"])
     return {"All_Data":allData}, 201, headers
 
 
