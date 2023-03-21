@@ -304,15 +304,15 @@ def technohealthData(device_name,usage_id):
     accxData = []
     accyData = []
     acczData = []
+
     for document in data:
         accxData.append({"Timestamp": document["timestamp"],
                 "Data" : document["ACCX"]})
-    for document in data:
         accyData.append({"Timestamp": document["timestamp"],
                 "Data" : document["ACCY"]})
-    for document in data:
         acczData.append({"Timestamp": document["timestamp"],
                 "Data" : document["ACCZ"]})
+
     allData = {
         0:{"ACCX": accxData},
         1:{"ACCY": accyData},
@@ -320,7 +320,7 @@ def technohealthData(device_name,usage_id):
     }
     
 # print(allData["EEG"][1]["Timestamp"])
-    return {"All_Data":allData}, 201, headers
+    return {"All_Data": allData}, 201, headers
 
 
 if __name__ == '__main__':
