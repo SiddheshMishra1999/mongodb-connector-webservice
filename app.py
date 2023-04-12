@@ -212,13 +212,26 @@ def flutterManyData():
 
 @app.post('/technohealthInsert')
 def postManyTechnohealth():
-    db = client.Technohealth
+    # db = client.Technohealth
     
     headers = {
     'Access-Control-Allow-Origin': '*'
     }
 
     if request.method=='POST':
+        deviceName = request.json["deviceName"]
+        serialNumber = request.json["serialNumber"]
+
+        print(f"device name = {deviceName}\nserial Number = {serialNumber}")
+
+        endpoint = f"https://supabase-webservice-tnxbi5wsma-uc.a.run.app/usage/get/device/{deviceName}/{serialNumber}"
+        response = requests.get(url=endpoint)
+        resJson = response.json()
+        if(not resJson):
+            return{'error': 'No such usageid'}, 400, headers
+        usage_id = resJson["Usage"][0]["usage_id"]
+        db = client[deviceName]
+        collection = db[usage_id]
         requestData = request.json["data"]
         # Splitting the data being received 
 
@@ -238,7 +251,7 @@ def postManyTechnohealth():
             # Dictionary cannot have duplicate keys, so we don't use the keys
             # So we just don't use them, we have our own keys 
             values.append(pairs[1])
-        collectionName = str(values[0])
+        # collectionName = str(values[0])
         # Loop to make dictionaries using the keys list and the values
         for i in range(0, len(values), len(keys)):
             value = values[i:i+len(keys)]
@@ -249,7 +262,7 @@ def postManyTechnohealth():
         # Loop to change all the dictionaries to JSON objects
         # for i in data:
         #     json.dumps(i)
-        collection = db[collectionName]
+        # collection = db[collection]
         collection.insert_many(data)
 
         collection.update_many(
@@ -267,7 +280,7 @@ def postManyTechnohealth():
 
 # Route to get Technohealth data
 @app.get('/<device_name>/<usage_id>')
-def technohealthData(device_name,usage_id):
+def getDeviceData(device_name,usage_id):
     db = client[device_name]
     collectionName = usage_id
     collection = db[collectionName]
@@ -295,8 +308,8 @@ def technohealthData(device_name,usage_id):
                     "Data" : document["Data"]})
         
         allData = {
-            0:{"EEG": eegData},
-            1:{"PPG": ppgData}
+            0:{"PPG": eegData},
+            1:{"ECG": ppgData}
         }
         return {"All_Data":allData}, 201, headers
     
