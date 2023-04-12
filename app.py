@@ -13,7 +13,7 @@ def home():
     return "Hello, Flask!"
 
 # Getting Database cluster 
-connection = os.environ.get("CONNECTION_STRING")
+connection = os.environ.get("MongoConnection")
 client = MongoClient(connection)
 
 
